@@ -1,0 +1,98 @@
+# teleport
+
+teleport packs a coding-agent session into one zip file, so you can resume it on another
+machine or another harness. the payload is harness-agnostic: three plain markdown files carry
+the meaning, and raw session history rides along as a best-effort attachment.
+
+## install
+
+user-level, all harnesses:
+
+```
+./install.sh
+```
+
+one harness only:
+
+```
+./install.sh claude
+```
+
+project-level (claude and cursor only):
+
+```
+./install.sh --project /path/to/repo
+```
+
+## modes
+
+### pack
+
+```
+/teleport
+```
+
+writes `SUMMARY.md`, `FILES.md`, `LEARNINGS.md` to `.teleport/`, then runs
+`skill/scripts/teleport-pack.sh` to build `teleport-<name>.zip` in the repo root.
+
+### from
+
+```
+/teleport from teleport-rainbow-unicorn.zip
+```
+
+extracts the bundle, reads `RESUME.md` and the three md files, and resumes the session.
+
+### to
+
+```
+/teleport to coder@dev-workstation codex
+```
+
+packs, then `scp`s the zip to the host, then prints the command to run there.
+
+## bundle layout
+
+```
+teleport-<name>.zip
+└── teleport-<name>/
+    ├── MANIFEST.json        # name, created_at, source, git state, transport, history mode
+    ├── SUMMARY.md           # goal, what was done, what is planned, direction
+    ├── FILES.md             # files touched this session + change overview
+    ├── LEARNINGS.md         # findings, gotchas, key numbers, decisions
+    ├── RESUME.md            # boot instructions for the successor agent
+    ├── uncommitted.patch    # diff vs head, binary, omitted when the tree is clean
+    ├── history/             # raw session history, best effort
+    ├── context/             # extra handoff files
+    └── _teleport/           # unpack.sh + SKILL.md, for a host with no teleport installed
+```
+
+## harness support
+
+| harness  | status                                            |
+|----------|----------------------------------------------------|
+| claude   | verified: history auto-detect, skill install both work |
+| cursor   | skills dir exists; skill registration unverified |
+| codex    | skills dir exists; skill registration unverified |
+| opencode | unverified; no auto-detect for its sqlite history |
+
+a bundle works even on a harness with no teleport install: it carries `_teleport/` with the
+unpack script and `SKILL.md`, and `RESUME.md` gives plain restore steps.
+
+## limits
+
+- submodule content is not packed when the submodule is dirty. the manifest flags it.
+- cursor and opencode session history is sqlite. teleport does not auto-detect it and does not
+  scan it for secrets — pass `--history <file>` and review it by hand.
+- no history format conversion between harnesses. `history/` is a raw, best-effort attachment.
+
+## test
+
+```
+bash test/smoke.sh
+```
+
+runs 10 assertions against a fixture repo in a temp sandbox: patch apply, missing/empty
+learnings file, `--branch` transport, patch transport, subdir invocation, in-progress merge,
+zip-path-traversal and symlink rejection, unborn head, secret-scan flagging, and ambiguous
+codex history detection.
