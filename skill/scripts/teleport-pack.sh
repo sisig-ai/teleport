@@ -562,7 +562,7 @@ fi
 
 (cd "$STAGE_DIR" && python3 -m zipfile -c "$TMP_ZIP" "teleport-$NAME")
 
-if ! python3 -m zipfile -t "$TMP_ZIP"; then
+if ! python3 -m zipfile -t "$TMP_ZIP" >/dev/null; then
   echo "error: zip verification failed for $TMP_ZIP" >&2
   exit 1
 fi
