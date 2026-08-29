@@ -503,7 +503,16 @@ fi
 cat > "$PATTERN_FILE" <<'EOF'
 -----BEGIN( RSA| EC| OPENSSH)? PRIVATE KEY-----
 AKIA[0-9A-Z]{16}
-(api[_-]?key|secret|token|password)[[:space:]]*[:=][[:space:]]*['\''"][^'\''"]{8,}
+ghp_[A-Za-z0-9]{36}
+gho_[A-Za-z0-9]{36}
+github_pat_[A-Za-z0-9_]{82}
+npm_[A-Za-z0-9]{36}
+pypi-AgEIcHlwaS5vcmc[A-Za-z0-9_-]{50,}
+xox[baprs]-[A-Za-z0-9-]{10,}
+sq0[a-z]{3}-[A-Za-z0-9_-]{43}
+glpat-[A-Za-z0-9_-]{20}
+eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}
+(api[_-]?key|secret|token|password|credential)[[:space:]]*[:=][[:space:]]*['\''"][^'\''"]{8,}
 EOF
 
 SCAN_PATHS=("$BUNDLE_DIR/SUMMARY.md" "$BUNDLE_DIR/FILES.md" "$BUNDLE_DIR/LEARNINGS.md")
