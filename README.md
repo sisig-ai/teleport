@@ -4,32 +4,31 @@ teleport packs a coding-agent session into one zip file, so you can resume it on
 machine or another harness. the payload is harness-agnostic: three plain markdown files carry
 the meaning, and raw session history rides along as a best-effort attachment.
 
-## install
+## quick start
 
-clone, then install:
-
-```
+```bash
 git clone https://github.com/sisig-ai/teleport.git
 cd teleport
-```
-
-user-level, all detected harnesses (claude, cursor, codex, opencode):
-
-```
 ./install.sh
 ```
 
-one harness only:
+this auto-detects every harness on your machine (claude, cursor, codex, opencode, goose) and
+installs the teleport skill to each one. no arguments needed.
 
-```
-./install.sh claude
+to install for a specific harness only:
+
+```bash
+./install.sh claude        # just claude
+./install.sh goose cursor  # multiple harnesses
 ```
 
-project-level (claude and cursor only):
+to install at project level (claude and cursor only):
 
-```
+```bash
 ./install.sh --project /path/to/repo
 ```
+
+after install, run `/teleport` or say "teleport this session" in any supported harness.
 
 ## modes
 
@@ -47,9 +46,10 @@ pack script flags:
 | flag | effect |
 |------|--------|
 | `--name a-b` | pick the bundle name instead of a random `word-word` |
-| `--history FILE` | attach a session history file (repeatable; required for cursor/opencode) |
+| `--history FILE` | attach a session history file (repeatable) |
 | `--context FILE` | attach an extra handoff file (repeatable) |
-| `--branch` / `--push` | commit the uncommitted work to branch `teleport/<name>` and push it to `origin` (both flags do the same; needs a remote) |
+| `--harness NAME` | explicitly set source harness label (claude\|cursor\|codex\|opencode\|goose) |
+| `--branch` / `--push` | commit uncommitted work to branch `teleport/<name>` and push to `origin` |
 | `--max-mb N` | raise the size preflight cap (default 200 mb of changed + untracked files) |
 
 without `--branch`, uncommitted work travels as `uncommitted.patch` inside the zip.
@@ -98,12 +98,13 @@ teleport-<name>.zip
 
 ## harness support
 
-| harness  | status                                            |
-|----------|----------------------------------------------------|
-| claude   | verified: history auto-detect, skill install both work |
-| cursor   | skills dir exists; skill registration unverified |
-| codex    | skills dir exists; skill registration unverified |
-| opencode | unverified; no auto-detect for its sqlite history |
+| harness  | status                                                       |
+|----------|--------------------------------------------------------------|
+| claude   | ✅ verified: auto-detect, pack, unpack, skill install        |
+| cursor   | ✅ verified: auto-detect, pack, unpack, skill install        |
+| codex    | ✅ verified: auto-detect, pack, unpack, skill install        |
+| opencode | ✅ verified: auto-detect, pack, unpack, skill install        |
+| goose    | ✅ verified: auto-detect, pack, unpack, skill install        |
 
 a bundle works even on a harness with no teleport install: it carries `_teleport/` with the
 unpack script and `SKILL.md`, and `RESUME.md` gives plain restore steps.
@@ -111,8 +112,6 @@ unpack script and `SKILL.md`, and `RESUME.md` gives plain restore steps.
 ## limits
 
 - submodule content is not packed when the submodule is dirty. the manifest flags it.
-- cursor and opencode session history is sqlite. teleport does not auto-detect it and does not
-  scan it for secrets — pass `--history <file>` and review it by hand.
 - no history format conversion between harnesses. `history/` is a raw, best-effort attachment.
 
 ## test
