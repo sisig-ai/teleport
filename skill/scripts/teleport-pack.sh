@@ -136,9 +136,13 @@ if [[ "$GIT_PRESENT" == true ]]; then
     total=0
     while IFS= read -r -d '' entry; do
       xy="${entry:0:2}"
-      path="${entry:3}"
-      if [[ "${xy:0:1}" == "R" || "${xy:0:1}" == "C" || "${xy:1:1}" == "R" || "${xy:1:1}" == "C" ]]; then
+      # R/C entries have two null-delimited fields: orig\0new\0
+      # consume the original path so the next read gets the new path
+      if [[ "${xy:0:1}" == "R" || "${xy:0:1}" == "C" ]]; then
         IFS= read -r -d '' _orig || true
+        IFS= read -r -d '' path || continue
+      else
+        path="${entry:3}"
       fi
       if [[ -e "$path" ]]; then
         size=$(stat -c %s -- "$path" 2>/dev/null || echo 0)
