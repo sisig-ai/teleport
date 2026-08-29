@@ -50,7 +50,9 @@ best-effort attachment, not the primary record.
 3. print the one command for the user to run on the host. all harnesses use the same command:
    `/teleport from ~/teleport-<name>.zip`. `[harness]` only changes the wording of that
    printed line — it names which agent to run the command in.
-4. if the host has no teleport skill installed, the bundle still works: it carries
+4. offer to run the restore command directly over ssh: `ssh <host> '<harness-cmd> /teleport from ~/teleport-<name>.zip'`.
+   ask the user before executing. if they decline, just print the command as above.
+5. if the host has no teleport skill installed, the bundle still works: it carries
    `_teleport/teleport-unpack.sh` and `_teleport/SKILL.md` so the host can bootstrap from the
    zip alone.
 
