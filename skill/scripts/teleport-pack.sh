@@ -220,12 +220,14 @@ else
 
     CODEX_MATCHES=()
     if [[ -d "$HOME/.codex/sessions" ]]; then
+      # optimize: sort by mtime descending and stop at first match
       while IFS= read -r -d '' f; do
         cwd="$(head -n 1 "$f" 2>/dev/null | jq -r '.payload.cwd // empty' 2>/dev/null || true)"
         if [[ "$cwd" == "$ROOT" ]]; then
           CODEX_MATCHES+=("$f")
+          break  # newest matching session is sufficient
         fi
-      done < <(find "$HOME/.codex/sessions" -type f -name 'rollout-*.jsonl' -print0 2>/dev/null)
+      done < <(find "$HOME/.codex/sessions" -type f -name 'rollout-*.jsonl' -printf '%T@\t%p\0' 2>/dev/null | sort -rz -t$'\t' -k1,1 | cut -z -f2-)
     fi
 
     CURSOR_MATCHES=()
