@@ -97,6 +97,18 @@ if [[ -z "$MANIFEST_PATH" ]]; then
 fi
 BUNDLE_DIR="$(dirname "$MANIFEST_PATH")"
 
+# validate manifest schema version
+BUNDLE_FORMAT="$(jq -r '.bundle_format // empty' "$MANIFEST_PATH")"
+if [[ -z "$BUNDLE_FORMAT" ]]; then
+  echo "error: MANIFEST.json missing bundle_format field." >&2
+  exit 1
+fi
+if [[ "$BUNDLE_FORMAT" != "1" ]]; then
+  echo "error: unsupported bundle format version '$BUNDLE_FORMAT'. this unpacker supports format 1 only." >&2
+  echo "hint: update teleport to handle newer bundle formats." >&2
+  exit 1
+fi
+
 echo "--- bundle summary ---"
 jq -r '
   "name: \(.name)",
