@@ -46,13 +46,21 @@ best-effort attachment, not the primary record.
 ## mode: to (`/teleport to <host> [harness]`)
 
 1. run the pack steps above.
-2. `scp` the zip to the host: `scp teleport-<name>.zip <host>:~/`.
-3. print the one command for the user to run on the host. all harnesses use the same command:
-   `/teleport from ~/teleport-<name>.zip`. `[harness]` only changes the wording of that
-   printed line — it names which agent to run the command in.
-4. offer to run the restore command directly over ssh: `ssh <host> '<harness-cmd> /teleport from ~/teleport-<name>.zip'`.
+2. detect the remote cwd best-effort before scp:
+   - read `cwd` from MANIFEST.json in the just-packed bundle.
+   - probe the host: `ssh <host> 'test -d <cwd> && echo <cwd>'`. if it exists, use it as the
+     remote target dir for both scp and restore.
+   - fallback: `ssh <host> 'basename <cwd>'` to find a matching dir name under `$HOME`, or
+     default to `~/`. never guess silently — tell the user what was detected and let them
+     override.
+3. `scp` the zip to the detected remote dir: `scp teleport-<name>.zip <host>:<remote-dir>/`.
+4. print the one command for the user to run on the host. all harnesses use the same command:
+   `/teleport from <remote-dir>/teleport-<name>.zip`. `[harness]` only changes the wording of
+   that printed line — it names which agent to run the command in.
+5. offer to run the restore command directly over ssh:
+   `ssh <host> 'cd <remote-dir> && <harness-cmd> /teleport from teleport-<name>.zip'`.
    ask the user before executing. if they decline, just print the command as above.
-5. if the host has no teleport skill installed, the bundle still works: it carries
+6. if the host has no teleport skill installed, the bundle still works: it carries
    `_teleport/teleport-unpack.sh` and `_teleport/SKILL.md` so the host can bootstrap from the
    zip alone.
 
