@@ -12,9 +12,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 usage() {
-  echo "usage: teleport-pack.sh [--name a-b] [--history FILE]... [--context FILE]... [--harness NAME] [--branch] [--push] [--max-mb N]" >&2
-  echo "--harness explicitly sets the source harness label in MANIFEST.json (claude|cursor|codex|opencode|goose)." >&2
+  echo "usage: teleport-pack.sh [--name a-b] [--history FILE]... [--context FILE]... [--harness NAME] [--branch] [--push] [--max-mb N] [--with-doctrine]" >&2
+  echo "--harness explicitly sets the source harness label in MANIFEST.json (claude|cursor|codex|opencode|goose|pi)." >&2
   echo "--branch and --push both commit + push a teleport/<name> branch to origin; requires an origin remote." >&2
+  echo "--with-doctrine packs user-level and project-level doctrine/skill files into doctrine/." >&2
   exit 1
 }
 
@@ -23,6 +24,7 @@ HISTORY_ARGS=()
 CONTEXT_ARGS=()
 HARNESS_OVERRIDE=""
 BRANCH_FLAG=false
+WITH_DOCTRINE=false
 MAX_MB=200
 
 while [[ $# -gt 0 ]]; do
@@ -46,6 +48,8 @@ while [[ $# -gt 0 ]]; do
     --max-mb)
       [[ $# -ge 2 ]] || usage
       MAX_MB="$2"; shift 2 ;;
+    --with-doctrine)
+      WITH_DOCTRINE=true; shift ;;
     -h|--help)
       usage ;;
     *)
@@ -392,6 +396,9 @@ fi
 STAGE_DIR="$(mktemp -d)"
 BUNDLE_DIR="$STAGE_DIR/teleport-$NAME"
 mkdir -p "$BUNDLE_DIR" "$BUNDLE_DIR/history" "$BUNDLE_DIR/context" "$BUNDLE_DIR/_teleport"
+if [[ "$WITH_DOCTRINE" == true ]]; then
+  mkdir -p "$BUNDLE_DIR/doctrine/user" "$BUNDLE_DIR/doctrine/project"
+fi
 
 if [[ "$GIT_PRESENT" == true ]]; then
   trap 'rm -f "$TMP_INDEX" "$TMP_PATCH"; rm -rf "$STAGE_DIR"' EXIT
@@ -444,6 +451,52 @@ PATCH_SIZE=0
 if [[ "$TRANSPORT" == "patch" ]]; then
   cp "$TMP_PATCH" "$BUNDLE_DIR/uncommitted.patch"
   PATCH_SIZE=$(stat -c %s "$BUNDLE_DIR/uncommitted.patch")
+fi
+
+# --- doctrine collection (best-effort, never fails the pack) -----------------
+DOCTRINE_FILES=()
+if [[ "$WITH_DOCTRINE" == true ]]; then
+  _copy_doctrine() {
+    local src="$1" dest_prefix="$2"
+    if [[ -e "$src" ]]; then
+      if [[ -d "$src" ]]; then
+        while IFS= read -r -d '' f; do
+          rel="${f#"$src"/}"
+          dest="$BUNDLE_DIR/doctrine/$dest_prefix/$rel"
+          mkdir -p "$(dirname "$dest")"
+          cp -p "$f" "$dest"
+          DOCTRINE_FILES+=("doctrine/$dest_prefix/$rel")
+        done < <(find "$src" -type f -print0 2>/dev/null)
+      else
+        dest="$BUNDLE_DIR/doctrine/$dest_prefix/$(basename "$src")"
+        mkdir -p "$(dirname "$dest")"
+        cp -p "$src" "$dest"
+        DOCTRINE_FILES+=("doctrine/$dest_prefix/$(basename "$src")")
+      fi
+    fi
+  }
+  # user-level doctrine
+  _copy_doctrine "$HOME/.claude/CLAUDE.md"       "user/claude"
+  _copy_doctrine "$HOME/.claude/settings.json"   "user/claude"
+  _copy_doctrine "$HOME/.cursor/rules"           "user/cursor"
+  _copy_doctrine "$HOME/.cursor/skills"          "user/cursor"
+  _copy_doctrine "$HOME/.codex/instructions.md"  "user/codex"
+  _copy_doctrine "$HOME/.codex/skills"           "user/codex"
+  _copy_doctrine "$HOME/.config/opencode"        "user/opencode"
+  _copy_doctrine "$HOME/.config/goose"           "user/goose"
+  _copy_doctrine "$HOME/.config/pi"              "user/pi"
+  # project-level doctrine (under repo root)
+  if [[ "$GIT_PRESENT" == true ]]; then
+    _copy_doctrine "$ROOT/.claude"  "project/.claude"
+    _copy_doctrine "$ROOT/.cursor"  "project/.cursor"
+    _copy_doctrine "$ROOT/.codex"   "project/.codex"
+    _copy_doctrine "$ROOT/.opencode" "project/.opencode"
+    _copy_doctrine "$ROOT/.goose"   "project/.goose"
+    _copy_doctrine "$ROOT/.pi"      "project/.pi"
+  fi
+  if [[ ${#DOCTRINE_FILES[@]} -eq 0 ]]; then
+    warn "--with-doctrine: no doctrine files found"
+  fi
 fi
 
 # --- step 8: RESUME.md -------------------------------------------------------
@@ -563,6 +616,7 @@ chmod +x "$BUNDLE_DIR/_teleport/teleport-unpack.sh"
 # --- step 11: MANIFEST.json ---------------------------------------------------
 SUBMODULES_JSON="$(printf '%s\n' "${SUBMODULES_DIRTY[@]:-}" | jq -R -s 'split("\n") | map(select(length > 0))')"
 HISTORY_FILES_JSON="$(printf '%s\n' "${HISTORY_COPIED[@]:-}" | xargs -I{} -n1 basename {} 2>/dev/null | jq -R -s 'split("\n") | map(select(length > 0))')"
+DOCTRINE_FILES_JSON="$(printf '%s\n' "${DOCTRINE_FILES[@]:-}" | jq -R -s 'split("\n") | map(select(length > 0))')"
 WARNINGS_JSON="$(printf '%s\n' "${WARNINGS[@]:-}" | jq -R -s 'split("\n") | map(select(length > 0))')"
 
 CREATED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -590,6 +644,7 @@ jq -n \
   --arg history_harness "$HISTORY_HARNESS" \
   --argjson history_files "$HISTORY_FILES_JSON" \
   --argjson warnings "$WARNINGS_JSON" \
+  --argjson doctrine_files "$DOCTRINE_FILES_JSON" \
   '{
     bundle_format: $bundle_format,
     name: $name,
@@ -609,7 +664,8 @@ jq -n \
     },
     transport: $transport,
     history: { mode: $history_mode, harness: $history_harness, files: $history_files },
-    warnings: $warnings
+    warnings: $warnings,
+    doctrine: { files: $doctrine_files }
   }' > "$BUNDLE_DIR/MANIFEST.json"
 
 # --- zip creation and verification -------------------------------------------

@@ -134,6 +134,49 @@ if git rev-parse --show-toplevel >/dev/null 2>&1 && [[ -n "$MANIFEST_HEAD" ]]; t
   fi
 fi
 
+# --- doctrine restore (interactive, never silent) ----------------------------
+DOCTRINE_FILES="$(jq -r '.doctrine.files[]? // empty' "$MANIFEST_PATH" 2>/dev/null || true)"
+if [[ -n "$DOCTRINE_FILES" ]]; then
+  echo ""
+  echo "--- doctrine files in bundle ---"
+  echo "$DOCTRINE_FILES"
+  echo ""
+  read -r -p "restore doctrine files? [y/N] " DOCTRINE_ANSWER </dev/tty || DOCTRINE_ANSWER="n"
+  case "$DOCTRINE_ANSWER" in
+    [yY]*)
+      while IFS= read -r dfile; do
+        [[ -z "$dfile" ]] && continue
+        src="$BUNDLE_DIR/$dfile"
+        # strip leading 'doctrine/user/<harness>/' or 'doctrine/project/<dir>/' to get install path
+        rel="${dfile#doctrine/}"
+        if [[ "$rel" == user/* ]]; then
+          dest="$HOME/${rel#user/}"
+        elif [[ "$rel" == project/* ]]; then
+          dest="./${rel#project/}"
+        else
+          warn "skipping unknown doctrine path: $dfile"
+          continue
+        fi
+        if [[ -e "$dest" ]]; then
+          read -r -p "$dest exists — replace? [y/N] " REPLACE_ANSWER </dev/tty || REPLACE_ANSWER="n"
+          case "$REPLACE_ANSWER" in
+            [yY]*) cp -p "$src" "$dest" && echo "  replaced: $dest" ;;
+            *)     echo "  skipped:  $dest" ;;
+          esac
+        else
+          mkdir -p "$(dirname "$dest")"
+          cp -p "$src" "$dest"
+          echo "  restored: $dest"
+        fi
+      done <<< "$DOCTRINE_FILES"
+      ;;
+    *)
+      echo "doctrine restore skipped."
+      ;;
+  esac
+fi
+
+echo ""
 echo "--- next steps ---"
 echo "read $BUNDLE_DIR/RESUME.md first."
 
