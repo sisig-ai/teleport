@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # install.sh — install the teleport skill for one or more harnesses.
 # usage: install.sh [--project DIR] [harness ...]
-# harness names: claude cursor codex opencode goose
+# harness names: claude cursor codex opencode goose pi
 # when no harness is specified, installs to ALL detected harnesses on this machine.
 set -euo pipefail
 
@@ -10,7 +10,7 @@ SKILL_SRC="$SCRIPT_DIR/skill"
 
 usage() {
   echo "usage: install.sh [--project DIR] [harness ...]" >&2
-  echo "harness names: claude cursor codex opencode goose" >&2
+  echo "harness names: claude cursor codex opencode goose pi" >&2
   echo "with no arguments, auto-detects and installs to all available harnesses." >&2
   exit 1
 }
@@ -25,7 +25,7 @@ while [[ $# -gt 0 ]]; do
       PROJECT_DIR="$2"; shift 2 ;;
     -h|--help)
       usage ;;
-    claude|cursor|codex|opencode|goose)
+    claude|cursor|codex|opencode|goose|pi)
       FILTERS+=("$1"); shift ;;
     *)
       echo "error: unknown argument: $1" >&2
@@ -45,6 +45,7 @@ declare -A USER_DESTS=(
   [codex]="$HOME/.codex/skills/teleport"
   [opencode]="$HOME/.config/opencode/skills/teleport"
   [goose]="$HOME/.config/goose/skills/teleport"
+  [pi]="$HOME/.config/pi/skills/teleport"
 )
 
 # --- detection heuristics: does this machine have the harness? --------------
@@ -56,6 +57,7 @@ detect_harness() {
     codex)    command -v codex >/dev/null 2>&1 || [[ -d "$HOME/.codex" ]] ;;
     opencode) command -v opencode >/dev/null 2>&1 || [[ -d "$HOME/.opencode" ]] || [[ -d "$HOME/.config/opencode" ]] ;;
     goose)    command -v goose >/dev/null 2>&1 || [[ -d "$HOME/.config/goose" ]] || [[ -d "$HOME/.goose" ]] ;;
+    pi)       command -v pi >/dev/null 2>&1 || [[ -d "$HOME/.config/pi" ]] || [[ -d "$HOME/.pi" ]] ;;
     *)        return 1 ;;
   esac
 }
@@ -103,7 +105,7 @@ fi
 
 if [[ ${#TARGETS[@]} -eq 0 ]]; then
   echo "error: no install targets selected. specify a harness or ensure at least one is installed." >&2
-  echo "available: claude cursor codex opencode goose" >&2
+  echo "available: claude cursor codex opencode goose pi" >&2
   exit 1
 fi
 
