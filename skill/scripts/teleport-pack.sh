@@ -648,4 +648,6 @@ echo "patch: ${PATCH_SIZE} bytes"
 for w in "${WARNINGS[@]:-}"; do
   [[ -n "$w" ]] && echo "warning: $w"
 done
-echo "bundle: $ZIP_PATH"
+BUNDLE_SIZE="$(stat -c %s "$ZIP_PATH" 2>/dev/null || echo 0)"
+BUNDLE_SIZE_KB=$(( BUNDLE_SIZE / 1024 ))
+echo "bundle: $ZIP_PATH (${BUNDLE_SIZE_KB}kb)"
