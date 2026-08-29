@@ -12,7 +12,7 @@ cd teleport
 ./install.sh
 ```
 
-this auto-detects every harness on your machine (claude, cursor, codex, opencode, goose) and
+this auto-detects every harness on your machine (claude, cursor, codex, opencode, goose, pi) and
 installs the teleport skill to each one. no arguments needed.
 
 to install for a specific harness only:
@@ -48,7 +48,7 @@ pack script flags:
 | `--name a-b` | pick the bundle name instead of a random `word-word` |
 | `--history FILE` | attach a session history file (repeatable) |
 | `--context FILE` | attach an extra handoff file (repeatable) |
-| `--harness NAME` | explicitly set source harness label (claude\|cursor\|codex\|opencode\|goose) |
+| `--harness NAME` | explicitly set source harness label (claude\|cursor\|codex\|opencode\|goose\|pi) |
 | `--branch` / `--push` | commit uncommitted work to branch `teleport/<name>` and push to `origin` |
 | `--max-mb N` | raise the size preflight cap (default 200 mb of changed + untracked files) |
 
@@ -105,6 +105,7 @@ teleport-<name>.zip
 | codex    | ✅ verified: auto-detect, pack, unpack, skill install        |
 | opencode | ✅ verified: auto-detect, pack, unpack, skill install        |
 | goose    | ✅ verified: auto-detect, pack, unpack, skill install        |
+| pi       | ✅ verified: auto-detect, pack, unpack, skill install        |
 
 a bundle works even on a harness with no teleport install: it carries `_teleport/` with the
 unpack script and `SKILL.md`, and `RESUME.md` gives plain restore steps.
