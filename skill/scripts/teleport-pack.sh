@@ -175,9 +175,14 @@ if [[ ${#HISTORY_ARGS[@]} -gt 0 ]]; then
     HISTORY_FILES+=("$h")
   done
   # best-effort harness label for an explicit file
-  case "${HISTORY_FILES[0]}" in
+  _hist_path="${HISTORY_FILES[0]}"
+  case "$_hist_path" in
     *rollout-*.jsonl) HISTORY_HARNESS="codex" ;;
-    *.jsonl) HISTORY_HARNESS="claude" ;;
+    */.goose/*|*/.config/goose/*) HISTORY_HARNESS="goose" ;;
+    */.opencode/*) HISTORY_HARNESS="opencode" ;;
+    */.cursor/*) HISTORY_HARNESS="cursor" ;;
+    */.claude/*) HISTORY_HARNESS="claude" ;;
+    *.jsonl) HISTORY_HARNESS="claude" ;;  # fallback for generic jsonl
     *) HISTORY_HARNESS="unknown" ;;
   esac
 else
