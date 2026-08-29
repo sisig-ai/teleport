@@ -12,7 +12,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 usage() {
-  echo "usage: teleport-pack.sh [--name a-b] [--history FILE]... [--context FILE]... [--branch] [--push] [--max-mb N]" >&2
+  echo "usage: teleport-pack.sh [--name a-b] [--history FILE]... [--context FILE]... [--harness NAME] [--branch] [--push] [--max-mb N]" >&2
+  echo "--harness explicitly sets the source harness label in MANIFEST.json (claude|cursor|codex|opencode|goose)." >&2
   echo "--branch and --push both commit + push a teleport/<name> branch to origin; requires an origin remote." >&2
   exit 1
 }
@@ -20,6 +21,7 @@ usage() {
 NAME=""
 HISTORY_ARGS=()
 CONTEXT_ARGS=()
+HARNESS_OVERRIDE=""
 BRANCH_FLAG=false
 MAX_MB=200
 
@@ -34,6 +36,9 @@ while [[ $# -gt 0 ]]; do
     --context)
       [[ $# -ge 2 ]] || usage
       CONTEXT_ARGS+=("$2"); shift 2 ;;
+    --harness)
+      [[ $# -ge 2 ]] || usage
+      HARNESS_OVERRIDE="$2"; shift 2 ;;
     --branch)
       BRANCH_FLAG=true; shift ;;
     --push)
@@ -292,7 +297,9 @@ else
 fi
 
 SOURCE_HARNESS="unknown"
-if [[ -n "${CLAUDE_CODE_SESSION_ID:-}" ]]; then
+if [[ -n "$HARNESS_OVERRIDE" ]]; then
+  SOURCE_HARNESS="$HARNESS_OVERRIDE"
+elif [[ -n "${CLAUDE_CODE_SESSION_ID:-}" ]]; then
   SOURCE_HARNESS="claude"
 elif [[ "$HISTORY_HARNESS" != "none" && "$HISTORY_HARNESS" != "unknown" ]]; then
   SOURCE_HARNESS="$HISTORY_HARNESS"
