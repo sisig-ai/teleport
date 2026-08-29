@@ -30,7 +30,28 @@ best-effort attachment, not the primary record.
 
 3. run `<skill dir>/scripts/teleport-pack.sh`. pass `--history <file>` when the script asks
    for it (cursor, opencode, or ambiguous detection). pass `--branch` or `--push` only when the
-   user allows a git push.
+   user allows a git push. pass `--with-doctrine` when the user requests it to include
+   user-level doctrine and skill files in the bundle.
+
+### doctrine (`--with-doctrine`)
+
+when `--with-doctrine` is passed, pack copies user-level configuration into `doctrine/` inside
+the bundle so the destination environment matches the source. best-effort: skip missing paths,
+never fail the pack because a doctrine file is absent.
+
+- scan these locations (all harnesses):
+  - `~/.claude/CLAUDE.md`, `~/.claude/settings.json`
+  - `~/.cursor/rules/**`, `~/.cursor/skills/**`
+  - `~/.codex/instructions.md`, `~/.codex/skills/**`
+  - `~/.config/opencode/config.*`, `~/.config/opencode/skills/**`
+  - `~/.config/goose/config.*`, `~/.config/goose/skills/**`
+  - `~/.config/pi/config.*`, `~/.config/pi/skills/**`
+  - project-level equivalents under the repo root (`.claude/`, `.cursor/`, etc.)
+- preserve relative paths inside `doctrine/` (e.g. `doctrine/user/claude/CLAUDE.md`,
+  `doctrine/project/.cursor/rules/foo.mdc`).
+- record what was included in MANIFEST.json under `doctrine.files`.
+- on unpack, print the doctrine manifest and ask the user before restoring any files.
+  never overwrite existing doctrine files silently — offer to merge, skip, or replace per file.
 
 4. give the user the zip path. send the file too, when the harness supports it.
 
