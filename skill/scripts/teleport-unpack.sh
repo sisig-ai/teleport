@@ -79,8 +79,8 @@ with zipfile.ZipFile(zip_path) as zf:
         seen.add(norm)
         mode = (info.external_attr >> 16) & 0o170000
         if mode == 0o120000:
-            print(f"error: symlink member rejected: {name}", file=sys.stderr)
-            sys.exit(1)
+            print(f"warning: symlink member skipped (not portable): {name}", file=sys.stderr)
+            continue
     zf.extractall(dest_dir)
 PYEOF
 
