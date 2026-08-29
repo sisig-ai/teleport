@@ -224,16 +224,52 @@ else
       done < <(find "$HOME/.codex/sessions" -type f -name 'rollout-*.jsonl' -print0 2>/dev/null)
     fi
 
-    ALL_CANDS=("${CANDIDATES[@]}" "${CODEX_MATCHES[@]}")
+    CURSOR_MATCHES=()
+    if [[ -d "$HOME/.cursor/projects" ]]; then
+      CURSOR_SLUG="$(echo "$ROOT" | sed 's|/|-|g')"
+      if [[ -d "$HOME/.cursor/projects/$CURSOR_SLUG" ]]; then
+        while IFS= read -r -d '' f; do
+          CURSOR_MATCHES+=("$f")
+        done < <(find "$HOME/.cursor/projects/$CURSOR_SLUG" -maxdepth 1 -name '*.jsonl' -print0 2>/dev/null)
+      fi
+    fi
+
+    OPENCODE_MATCHES=()
+    if [[ -d "$HOME/.opencode/sessions" ]]; then
+      while IFS= read -r -d '' f; do
+        cwd="$(head -n 1 "$f" 2>/dev/null | jq -r '.cwd // .payload.cwd // empty' 2>/dev/null || true)"
+        if [[ "$cwd" == "$ROOT" ]]; then
+          OPENCODE_MATCHES+=("$f")
+        fi
+      done < <(find "$HOME/.opencode/sessions" -type f -name '*.jsonl' -print0 2>/dev/null)
+    fi
+
+    GOOSE_MATCHES=()
+    for _goose_dir in "$HOME/.config/goose/sessions" "$HOME/.goose/sessions"; do
+      if [[ -d "$_goose_dir" ]]; then
+        while IFS= read -r -d '' f; do
+          cwd="$(head -n 1 "$f" 2>/dev/null | jq -r '.working_directory // .cwd // empty' 2>/dev/null || true)"
+          if [[ "$cwd" == "$ROOT" ]]; then
+            GOOSE_MATCHES+=("$f")
+          fi
+        done < <(find "$_goose_dir" -type f -name '*.jsonl' -print0 2>/dev/null)
+      fi
+    done
+
+    ALL_CANDS=("${CANDIDATES[@]}" "${CODEX_MATCHES[@]}" "${CURSOR_MATCHES[@]}" "${OPENCODE_MATCHES[@]}" "${GOOSE_MATCHES[@]}")
 
     if [[ ${#ALL_CANDS[@]} -eq 1 ]]; then
       HISTORY_FILES=("${ALL_CANDS[0]}")
       HISTORY_MODE="heuristic"
-      if [[ ${#CANDIDATES[@]} -eq 1 ]]; then
-        HISTORY_HARNESS="claude"
-      else
-        HISTORY_HARNESS="codex"
-      fi
+      _matched="${ALL_CANDS[0]}"
+      case "$_matched" in
+        */.claude/*) HISTORY_HARNESS="claude" ;;
+        */.codex/*) HISTORY_HARNESS="codex" ;;
+        */.cursor/*) HISTORY_HARNESS="cursor" ;;
+        */.opencode/*) HISTORY_HARNESS="opencode" ;;
+        */.goose/*|*/.config/goose/*) HISTORY_HARNESS="goose" ;;
+        *) HISTORY_HARNESS="unknown" ;;
+      esac
     elif [[ ${#ALL_CANDS[@]} -gt 1 ]]; then
       echo "error: multiple history candidates found for this workdir:" >&2
       for c in "${ALL_CANDS[@]}"; do
