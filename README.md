@@ -11,6 +11,7 @@
 <p align="center">
   <a href="#harness-support"><img src="https://img.shields.io/badge/harnesses-6-171914?style=flat-square" alt="harnesses: 6"></a>
   <a href="https://github.com/sisig-ai/teleport/tree/main/skill/scripts"><img src="https://img.shields.io/badge/language-shell-171914?style=flat-square" alt="language: shell"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/github/license/sisig-ai/teleport?style=flat-square" alt="License"></a>
 </p>
 
 <p align="center">
@@ -159,3 +160,7 @@ history detection.
 ## Contributing
 
 Issues and PRs are welcome. Run `bash test/smoke.sh` before you open a PR.
+
+## License
+
+MIT, see [LICENSE](./LICENSE).
